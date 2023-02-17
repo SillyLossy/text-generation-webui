@@ -499,12 +499,12 @@ def create_settings_menus():
 
         gr.Markdown('Upload a soft prompt (.zip format):')
         with gr.Row():
-            upload_softprompt = gr.File(type='binary')
+            upload_softprompt = gr.File(type='binary', file_types=[".zip"])
 
     model_menu.change(load_model_wrapper, [model_menu], [model_menu], show_progress=True)
     preset_menu.change(load_preset_values, [preset_menu], [do_sample, temperature, top_p, typical_p, repetition_penalty, top_k, min_length, no_repeat_ngram_size, num_beams, penalty_alpha, length_penalty, early_stopping])
     softprompts_menu.change(load_soft_prompt, [softprompts_menu], [softprompts_menu], show_progress=True)
-    upload_softprompt.change(upload_soft_prompt, [upload_softprompt], [softprompts_menu])
+    upload_softprompt.upload(upload_soft_prompt, [upload_softprompt], [softprompts_menu])
     return preset_menu, do_sample, temperature, top_p, typical_p, repetition_penalty, top_k, min_length, no_repeat_ngram_size, num_beams, penalty_alpha, length_penalty, early_stopping
 
 # This gets the new line characters right.
@@ -980,7 +980,7 @@ if args.chat or args.cai_chat:
                     with gr.Row():
                         with gr.Column():
                             gr.Markdown('Upload')
-                            upload = gr.File(type='binary')
+                            upload_chat_history = gr.File(type='binary', file_types=[".json", ".txt"])
                         with gr.Column():
                             gr.Markdown('Download')
                             download = gr.File()
@@ -989,15 +989,15 @@ if args.chat or args.cai_chat:
                     with gr.Row():
                         with gr.Column():
                             gr.Markdown('1. Select the JSON file')
-                            upload_char = gr.File(type='binary')
+                            upload_char = gr.File(type='binary', file_types=[".json"])
                         with gr.Column():
                             gr.Markdown('2. Select your character\'s profile picture (optional)')
-                            upload_img = gr.File(type='binary')
+                            upload_img = gr.File(type='binary', file_types=["image"])
                     buttons["Upload character"] = gr.Button(value="Submit")
                 with gr.Tab('Upload your profile picture'):
-                    upload_img_me = gr.File(type='binary')
+                    upload_img_me = gr.File(type='binary', file_types=["image"])
                 with gr.Tab('Upload TavernAI Character Card'):
-                    upload_img_tavern = gr.File(type='binary')
+                    upload_img_tavern = gr.File(type='binary', file_types=["image"])
 
         with gr.Tab("Generation settings"):
             with gr.Row():
@@ -1045,7 +1045,7 @@ if args.chat or args.cai_chat:
         gen_events.append(buttons["Generate"].click(eval(function_call), input_params, display, show_progress=args.no_stream, api_name="textgen"))
         gen_events.append(textbox.submit(eval(function_call), input_params, display, show_progress=args.no_stream))
         if args.picture:
-            gen_events.append(picture_select.change(eval(function_call), input_params, display, show_progress=args.no_stream))
+            picture_select.upload(eval(function_call), input_params, display, show_progress=args.no_stream)
         gen_events.append(buttons["Regenerate"].click(regenerate_wrapper, input_params, display, show_progress=args.no_stream))
         gen_events.append(buttons["Impersonate"].click(impersonate_wrapper, input_params, textbox, show_progress=args.no_stream))
         buttons["Stop"].click(stop_everything_event, [], [], cancels=gen_events)
@@ -1066,17 +1066,17 @@ if args.chat or args.cai_chat:
         textbox.submit(lambda : save_history(timestamp=False), [], [], show_progress=False)
 
         character_menu.change(load_character, [character_menu, name1, name2], [name2, context, display])
-        upload_img_tavern.change(upload_tavern_character, [upload_img_tavern, name1, name2], [character_menu])
-        upload.change(load_history, [upload, name1, name2], [])
-        upload_img_me.change(upload_your_profile_picture, [upload_img_me], [])
+        upload_chat_history.upload(load_history, [upload_chat_history, name1, name2], [])
+        upload_img_tavern.upload(upload_tavern_character, [upload_img_tavern, name1, name2], [character_menu])
+        upload_img_me.upload(upload_your_profile_picture, [upload_img_me], [])
         if args.picture:
-            picture_select.change(lambda : None, [], [picture_select], show_progress=False)
+            picture_select.upload(lambda : None, [], [picture_select], show_progress=False)
         if args.cai_chat:
-            upload.change(redraw_html, [name1, name2], [display])
-            upload_img_me.change(redraw_html, [name1, name2], [display])
+            upload_chat_history.upload(redraw_html, [name1, name2], [display])
+            upload_img_me.upload(redraw_html, [name1, name2], [display])
         else:
-            upload.change(lambda : history['visible'], [], [display])
-            upload_img_me.change(lambda : history['visible'], [], [display])
+            upload_chat_history.upload(lambda : history['visible'], [], [display])
+            upload_img_me.upload(lambda : history['visible'], [], [display])
 
 elif args.notebook:
     with gr.Blocks(css=css, analytics_enabled=False) as interface:
