@@ -4,6 +4,7 @@ This is a library for formatting GPT-4chan and chat outputs as nice HTML.
 
 '''
 
+import base64
 import copy
 import re
 from pathlib import Path
@@ -192,7 +193,7 @@ def generate_chat_html(history, name1, name2, character):
 
     .message {
       display: grid;
-      grid-template-columns: 50px 1fr;
+      grid-template-columns: 60px 1fr;
       padding-bottom: 22px;
       font-size: 15px;
       font-family: helvetica;
@@ -200,15 +201,15 @@ def generate_chat_html(history, name1, name2, character):
     }   
         
     .circle-you {
-      width: 45px;
-      height: 45px;
+      width: 50px;
+      height: 50px;
       background-color: rgb(244, 78, 59);
       border-radius: 50%;
     }
           
     .circle-bot {
-      width: 45px;
-      height: 45px;
+      width: 50px;
+      height: 50px;
       background-color: rgb(59, 78, 244);
       border-radius: 50%;
     }
@@ -260,7 +261,12 @@ def generate_chat_html(history, name1, name2, character):
             ]:
         
         if Path(i).exists():
-            img = f'<img src="file/{i}">'
+            with open(i, "rb") as image_file:
+                encoded_string = base64.b64encode(image_file.read())
+            if i.endswith('png'):
+                img = f'<img src="data:image/png;base64,{encoded_string.decode("utf-8")}">'
+            elif i.endswith('jpg') or i.endswith('jpeg'):
+                img = f'<img src="data:image/jpg;base64,{encoded_string.decode("utf-8")}">'
             break
 
     img_me = ''
