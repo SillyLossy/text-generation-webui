@@ -519,8 +519,7 @@ def generate_chat_prompt(text, tokens, name1, name2, context, chat_prompt_size, 
     rows = [f"{context.strip()}\n"]
 
     if args.memory and len(bot_memory.state['long_buffer']) > 0:
-        rows[0] = rows[0].replace('<START>', '')
-        rows.append(bot_memory.get_memory(name1, name2))
+        rows.insert(1, bot_memory.get_memory(name1, name2))
         print(rows)
 
     i = len(history['internal'])-1
@@ -707,9 +706,11 @@ def replace_last_reply(text, name1, name2):
     else:
         return history['visible']
 
-def update_memory_parameters(short_len, long_len):
-    bot_memory.state['long_buffer_length'] = long_len
-    bot_memory.state['short_buffer_length'] = short_len
+def update_memory_parameters(short_len, long_len, repetition_penalty, temperature):
+    bot_memory.settings['long_buffer_length'] = long_len
+    bot_memory.settings['short_buffer_length'] = short_len
+    bot_memory.settings['repetition_penalty'] = repetition_penalty
+    bot_memory.settings['temperature'] = temperature
 
 def clear_html():
     return generate_chat_html([], "", "", character)
@@ -1012,23 +1013,29 @@ if args.chat or args.cai_chat:
                 create_extensions_block()
 
         if args.memory:
-            with gr.Tab("Memory"):
+            with gr.Tab("Memory settings"):
                 with gr.Row():
                     with gr.Column():
-                        memory_short_buffer_length = gr.Slider(minimum=(lambda: bot_memory.settings['min_short_buffer_length']), maximum=bot_memory.settings['max_short_buffer_length'], step=1, label='Short-term memory capacity in tokens', value=bot_memory.state['short_buffer_length'], interactive=True)
-                        memory_short_buffer = gr.TextArea(value=(lambda: bot_memory.state['short_buffer']), lines=8, label='Short-term memory state', show_label=True, interactive=False, every=1)
+                        memory_repetition_penalty = gr.Slider(value=bot_memory.settings['repetition_penalty'], minimum=1, maximum=5, step=0.01, label='Memory repetition penalty', show_label=True, interactive=True)
+                    with gr.Column():
+                        memory_temperature = gr.Slider(value=bot_memory.settings['temperature'], minimum=0.01, maximum=2, step=0.01, label="Summarization temperature", show_label=True, interactive=True)
                 with gr.Row():
                     with gr.Column():
-                        memory_long_buffer_length = gr.Slider(minimum=bot_memory.settings['min_long_buffer_length'], maximum=bot_memory.settings['max_long_buffer_length'], step=1, label='Long-term memory capacity in tokens', value=bot_memory.state['long_buffer_length'], interactive=True)
-                        memory_long_buffer = gr.TextArea(value=(lambda: bot_memory.state['long_buffer']), lines=8, label='Long-term memory state', show_label=True, interactive=False, every=1)
-            with gr.Tab("Token counter"):
+                        memory_short_buffer_length = gr.Slider(value=bot_memory.settings['short_buffer_length'], minimum=bot_memory.settings['min_short_buffer_length'], maximum=bot_memory.settings['max_short_buffer_length'], step=1, label='Short-term memory capacity in tokens', interactive=True)
+                        memory_short_buffer = gr.TextArea(value=(lambda: bot_memory.state['short_buffer']), lines=20, label='Short-term memory state', show_label=True, interactive=False, every=1)
+                    with gr.Column():
+                        memory_long_buffer_length = gr.Slider(value=bot_memory.settings['long_buffer_length'], minimum=bot_memory.settings['min_long_buffer_length'], maximum=bot_memory.settings['max_long_buffer_length'], step=1, label='Long-term memory capacity in tokens', interactive=True)
+                        memory_long_buffer = gr.TextArea(value=(lambda: bot_memory.state['long_buffer']), lines=20, label='Long-term memory state', show_label=True, interactive=False, every=1)
+            with gr.Tab("Utilities"):
                 with gr.Column():
                     token_counter_input = gr.TextArea(lines=15, value='', label="Type here to count the tokens in your text", show_label=True)
                     token_counter_output = gr.Textbox(label="Number of encoded tokens", value='', show_label=True, interactive=False)
                     token_counter_input.change((lambda x: str(len(encode(x)[0]))), [token_counter_input], [token_counter_output], show_progress=False)
-            memory_inputs = [memory_short_buffer_length, memory_long_buffer_length]
+            memory_inputs = [memory_short_buffer_length, memory_long_buffer_length, memory_repetition_penalty, memory_temperature]
             memory_long_buffer_length.change(update_memory_parameters, memory_inputs)
             memory_short_buffer_length.change(update_memory_parameters, memory_inputs)
+            memory_repetition_penalty.change(update_memory_parameters, memory_inputs)
+            memory_temperature.change(update_memory_parameters, memory_inputs)
 
         input_params = [textbox, max_new_tokens, do_sample, max_new_tokens, temperature, top_p, typical_p, repetition_penalty, top_k, min_length, no_repeat_ngram_size, num_beams, penalty_alpha, length_penalty, early_stopping, name1, name2, context, check, chat_prompt_size_slider]
         if args.picture:
